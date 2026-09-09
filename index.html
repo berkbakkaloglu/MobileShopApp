@@ -16,17 +16,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="manifest" href="/site.webmanifest">
-  <style>
-    .category-breakdown { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f1f3; }
-    .category-breakdown-title { margin: 0 0 12px; font-size: 12px; font-weight: 800; }
-    .breakdown-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; margin: 0 0 11px; }
-    .breakdown-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:5px; font-size:10px; }
-    .breakdown-name { color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .breakdown-amount { font-weight:700; color:var(--text); white-space:nowrap; }
-    .breakdown-track { height:7px; overflow:hidden; border-radius:99px; background:#f1f2f4; }
-    .breakdown-fill { height:100%; min-width:4px; border-radius:inherit; }
-    .breakdown-percent { align-self:end; min-width:36px; text-align:right; color:var(--muted); font-size:10px; font-weight:700; }
-  </style>
+  <style>.category-breakdown{margin-top:16px;padding-top:16px;border-top:1px solid #f0f1f3}.category-breakdown-title{margin:0 0 12px;font-size:12px;font-weight:800}.breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin:0 0 11px}.breakdown-head{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;font-size:10px}.breakdown-name{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.breakdown-amount{font-weight:700;color:var(--text);white-space:nowrap}.breakdown-track{height:7px;overflow:hidden;border-radius:99px;background:#f1f2f4}.breakdown-fill{height:100%;min-width:4px;border-radius:inherit}.breakdown-percent{align-self:end;min-width:36px;text-align:right;color:var(--muted);font-size:10px;font-weight:700}.forgot-button{display:block;margin:-5px 0 8px auto;border:0;background:transparent;color:#6b7280;font-size:12px;font-weight:600;padding:5px}</style>
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -34,11 +24,12 @@
     <div class="auth-card">
       <div class="brand-mark">✓</div><p class="eyebrow">SHOPLIST</p>
       <h1>Everything you need.<br><span>All in one place.</span></h1>
-      <p class="muted auth-copy">Create an account to keep your lists and spending history private and available on any device.</p>
+      <p class="muted auth-copy">Sign in to keep your lists and spending history private and available on any device.</p>
       <form id="auth-form">
         <label id="name-label" class="field hidden"><span>Name</span><input id="name-input" type="text" autocomplete="name" placeholder="Your name"></label>
         <label class="field"><span>Email</span><input id="email-input" type="email" autocomplete="email" placeholder="you@example.com" required></label>
         <label class="field"><span>Password</span><input id="password-input" type="password" autocomplete="current-password" placeholder="At least 6 characters" minlength="6" required></label>
+        <button id="forgot-password" class="forgot-button" type="button">Forgot password?</button>
         <button id="auth-submit" class="primary-button" type="submit">Sign in</button>
       </form>
       <button id="auth-toggle" class="text-button" type="button">Create a new account</button><p id="auth-error" class="error-message" role="alert"></p>
@@ -47,29 +38,15 @@
   <section id="app-screen" class="screen hidden">
     <header class="topbar"><div><p class="eyebrow">SHOPLIST</p><h1 id="page-title">My lists</h1></div><div class="top-actions"><button id="history-button" class="icon-button" type="button" aria-label="History">↗</button><button id="account-button" class="avatar-button" type="button" aria-label="Account">U</button></div></header>
     <main id="main-content">
-      <div id="categories-view">
-        <section class="welcome-card"><div><p class="muted small">Welcome back</p><h2 id="welcome-name">Ready when you are.</h2></div><span class="sparkle">✦</span></section>
-        <div class="section-heading"><h2>Shopping lists</h2><span id="category-count" class="count-badge">7</span></div><div id="category-grid" class="category-grid"></div>
-      </div>
-      <div id="list-view" class="hidden">
-        <button id="back-to-categories" class="back-button" type="button">‹ <span>All lists</span></button>
-        <div class="list-heading"><div><div id="list-icon" class="category-icon large">🛒</div><h2 id="list-title">Groceries</h2><p id="list-subtitle" class="muted">0 items</p></div><span id="progress-label" class="progress-label">0%</span></div>
-        <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
-        <form id="item-form" class="add-item-form"><input id="item-input" type="text" placeholder="Add an item…" autocomplete="off" required><button class="add-button" type="submit" aria-label="Add item">+</button></form>
-        <ul id="shopping-list" class="shopping-list"></ul><div id="empty-list" class="empty-state"><div class="empty-icon">✦</div><h3>Your list is empty</h3><p class="muted">Add the things you need to buy.</p></div>
-        <button id="complete-button" class="complete-button hidden" type="button">✓ Close shopping</button>
-      </div>
-      <div id="history-view" class="hidden">
-        <div class="history-summary" id="history-summary"></div>
-        <div class="history-card"><div class="card-heading"><div><h2>Spending overview</h2><p class="muted">Completed shopping by month</p></div><select id="history-currency" class="small-select"><option value="EUR">EUR</option><option value="TRY">TRY</option><option value="USD">USD</option></select></div><div id="history-chart" class="history-chart"></div><div id="category-legend" class="category-legend"></div><div id="category-breakdown" class="category-breakdown"></div></div>
-        <div class="history-card"><div class="card-heading"><div><h2>Recent shopping</h2><p class="muted">Tap a trip to see its items</p></div></div><div id="history-list" class="history-list"></div></div>
-      </div>
+      <div id="categories-view"><section class="welcome-card"><div><p class="muted small">Welcome back</p><h2 id="welcome-name">Ready when you are.</h2></div><span class="sparkle">✦</span></section><div class="section-heading"><h2>Shopping lists</h2><span id="category-count" class="count-badge">7</span></div><div id="category-grid" class="category-grid"></div></div>
+      <div id="list-view" class="hidden"><button id="back-to-categories" class="back-button" type="button">‹ <span>All lists</span></button><div class="list-heading"><div><div id="list-icon" class="category-icon large">🛒</div><h2 id="list-title">Groceries</h2><p id="list-subtitle" class="muted">0 items</p></div><span id="progress-label" class="progress-label">0%</span></div><div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div><form id="item-form" class="add-item-form"><input id="item-input" type="text" placeholder="Add an item…" autocomplete="off" required><button class="add-button" type="submit" aria-label="Add item">+</button></form><ul id="shopping-list" class="shopping-list"></ul><div id="empty-list" class="empty-state"><div class="empty-icon">✦</div><h3>Your list is empty</h3><p class="muted">Add the things you need to buy.</p></div><button id="complete-button" class="complete-button hidden" type="button">✓ Close shopping</button></div>
+      <div id="history-view" class="hidden"><div class="history-summary" id="history-summary"></div><div class="history-card"><div class="card-heading"><div><h2>Spending overview</h2><p class="muted">Completed shopping by month</p></div><select id="history-currency" class="small-select"><option value="EUR">EUR</option><option value="TRY">TRY</option><option value="USD">USD</option></select></div><div id="history-chart" class="history-chart"></div><div id="category-legend" class="category-legend"></div><div id="category-breakdown" class="category-breakdown"></div></div><div class="history-card"><div class="card-heading"><div><h2>Recent shopping</h2><p class="muted">Tap a trip to see its items</p></div></div><div id="history-list" class="history-list"></div></div></div>
     </main>
     <nav class="bottom-nav"><button id="home-nav" class="nav-item active" type="button"><span>⌂</span><small>Lists</small></button><button id="history-nav" class="nav-item" type="button"><span>▥</span><small>History</small></button></nav>
   </section>
   <div id="account-panel" class="modal hidden"><div class="modal-sheet"><button class="close-button" data-close="account-panel" type="button">×</button><p class="eyebrow">ACCOUNT</p><h2 id="account-name">Your account</h2><p id="account-email" class="muted"></p><button id="sign-out-button" class="secondary-button" type="button">Sign out</button></div></div>
   <div id="complete-modal" class="modal hidden"><div class="modal-sheet"><button class="close-button" data-close="complete-modal" type="button">×</button><p class="eyebrow">SHOPPING</p><h2 id="complete-modal-title">How much did you spend?</h2><p id="complete-modal-copy" class="muted">Save the final amount to your spending history.</p><div class="amount-row"><input id="amount-input" class="amount-input" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"><select id="currency-input" class="currency-select"><option value="EUR">€ EUR</option><option value="TRY">₺ TRY</option><option value="USD">$ USD</option></select></div><button id="save-complete-button" class="primary-button" type="button">Save shopping</button></div></div>
   <div id="history-detail-modal" class="modal hidden"><div class="modal-sheet"><button class="close-button" data-close="history-detail-modal" type="button">×</button><p class="eyebrow">SHOPPING DETAILS</p><h2 id="history-detail-title">Shopping</h2><p id="history-detail-meta" class="muted"></p><div id="history-detail-items" class="history-detail-items"></div><button id="delete-history-button" class="danger-button" type="button">Delete this shopping</button></div></div>
-  <script src="index.js?v=20260909-category-breakdown" type="module"></script>
+  <script src="index.js?v=20260909-auth-v1" type="module"></script>
 </body>
 </html>
