@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="index.css">
   <link rel="stylesheet" href="settings.css?v=20260909-settings-v1">
+  <link rel="stylesheet" href="undo.css?v=20260909-undo-v1">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -25,6 +26,7 @@
 </head>
 <body data-hand="left" data-theme="light">
   <div id="toast" class="toast" aria-live="polite"></div>
+  <div id="undo-snackbar" class="undo-snackbar" aria-live="polite"><span id="undo-message">Item removed</span><button id="undo-button" type="button">Undo</button></div>
   <section id="auth-screen" class="screen auth-screen">
     <div class="auth-card">
       <div class="brand-mark">✓</div><p class="eyebrow">SHOPLIST</p>
@@ -61,5 +63,6 @@
   <script src="settings.js?v=20260909-settings-v1"></script>
   <script src="install.js?v=20260909-pwa-v1"></script>
   <script src="index.js?v=20260909-auth-v1" type="module"></script>
+  <script src="undo.js?v=20260909-undo-v1" type="module"></script>
 </body>
 </html>
