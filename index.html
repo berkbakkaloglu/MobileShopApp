@@ -16,6 +16,17 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="manifest" href="/site.webmanifest">
+  <style>
+    .category-breakdown { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f1f3; }
+    .category-breakdown-title { margin: 0 0 12px; font-size: 12px; font-weight: 800; }
+    .breakdown-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; margin: 0 0 11px; }
+    .breakdown-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:5px; font-size:10px; }
+    .breakdown-name { color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .breakdown-amount { font-weight:700; color:var(--text); white-space:nowrap; }
+    .breakdown-track { height:7px; overflow:hidden; border-radius:99px; background:#f1f2f4; }
+    .breakdown-fill { height:100%; min-width:4px; border-radius:inherit; }
+    .breakdown-percent { align-self:end; min-width:36px; text-align:right; color:var(--muted); font-size:10px; font-weight:700; }
+  </style>
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -50,7 +61,7 @@
       </div>
       <div id="history-view" class="hidden">
         <div class="history-summary" id="history-summary"></div>
-        <div class="history-card"><div class="card-heading"><div><h2>Spending overview</h2><p class="muted">Completed shopping by month</p></div><select id="history-currency" class="small-select"><option value="EUR">EUR</option><option value="TRY">TRY</option><option value="USD">USD</option></select></div><div id="history-chart" class="history-chart"></div></div>
+        <div class="history-card"><div class="card-heading"><div><h2>Spending overview</h2><p class="muted">Completed shopping by month</p></div><select id="history-currency" class="small-select"><option value="EUR">EUR</option><option value="TRY">TRY</option><option value="USD">USD</option></select></div><div id="history-chart" class="history-chart"></div><div id="category-legend" class="category-legend"></div><div id="category-breakdown" class="category-breakdown"></div></div>
         <div class="history-card"><div class="card-heading"><div><h2>Recent shopping</h2><p class="muted">Tap a trip to see its items</p></div></div><div id="history-list" class="history-list"></div></div>
       </div>
     </main>
@@ -59,6 +70,6 @@
   <div id="account-panel" class="modal hidden"><div class="modal-sheet"><button class="close-button" data-close="account-panel" type="button">×</button><p class="eyebrow">ACCOUNT</p><h2 id="account-name">Your account</h2><p id="account-email" class="muted"></p><button id="sign-out-button" class="secondary-button" type="button">Sign out</button></div></div>
   <div id="complete-modal" class="modal hidden"><div class="modal-sheet"><button class="close-button" data-close="complete-modal" type="button">×</button><p class="eyebrow">SHOPPING</p><h2 id="complete-modal-title">How much did you spend?</h2><p id="complete-modal-copy" class="muted">Save the final amount to your spending history.</p><div class="amount-row"><input id="amount-input" class="amount-input" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"><select id="currency-input" class="currency-select"><option value="EUR">€ EUR</option><option value="TRY">₺ TRY</option><option value="USD">$ USD</option></select></div><button id="save-complete-button" class="primary-button" type="button">Save shopping</button></div></div>
   <div id="history-detail-modal" class="modal hidden"><div class="modal-sheet"><button class="close-button" data-close="history-detail-modal" type="button">×</button><p class="eyebrow">SHOPPING DETAILS</p><h2 id="history-detail-title">Shopping</h2><p id="history-detail-meta" class="muted"></p><div id="history-detail-items" class="history-detail-items"></div><button id="delete-history-button" class="danger-button" type="button">Delete this shopping</button></div></div>
-  <script src="index.js?v=20260909-history-fix" type="module"></script>
+  <script src="index.js?v=20260909-category-breakdown" type="module"></script>
 </body>
 </html>
