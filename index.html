@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="index.css?v=20260909-safearea-v1">
   <link rel="stylesheet" href="settings.css?v=20260909-settings-v1">
   <link rel="stylesheet" href="undo.css?v=20260909-undo-v1">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -22,6 +22,12 @@
   <style>
     .category-breakdown{margin-top:16px;padding-top:16px;border-top:1px solid #f0f1f3}.category-breakdown-title{margin:0 0 12px;font-size:12px;font-weight:800}.breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin:0 0 11px}.breakdown-head{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;font-size:10px}.breakdown-name{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.breakdown-amount{font-weight:700;color:var(--text);white-space:nowrap}.breakdown-track{height:7px;overflow:hidden;border-radius:99px;background:#f1f2f4}.breakdown-fill{height:100%;min-width:4px;border-radius:inherit}.breakdown-percent{align-self:end;min-width:36px;text-align:right;color:var(--muted);font-size:10px;font-weight:700}.forgot-button{display:block;margin:-5px 0 8px auto;border:0;background:transparent;color:#6b7280;font-size:12px;font-weight:600;padding:5px}
     .install-card{display:flex;align-items:center;gap:13px;margin:-14px 0 24px;padding:14px 15px;border:1px solid #dfe3ea;border-radius:18px;background:#fff;box-shadow:0 5px 18px rgba(17,24,39,.045)}.install-card-icon{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#111827;color:#fff;font-size:20px;font-weight:800}.install-card-copy{min-width:0;flex:1}.install-card-copy strong{display:block;font-size:13px}.install-card-copy small{display:block;margin-top:3px;color:var(--muted);font-size:10px;line-height:1.4}.install-card button{flex:0 0 auto;border:0;border-radius:11px;background:#eef2ff;color:#3730a3;padding:9px 11px;font-size:11px;font-weight:800}.install-steps{display:grid;gap:9px;margin:17px 0 3px}.install-step{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--line);border-radius:13px;background:#fafafa}.install-step>span{flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#111827;color:#fff;font-size:12px;font-weight:800}.install-step strong{display:block;font-size:12px}.install-step small{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.4}
+    .topbar{padding-top:calc(28px + env(safe-area-inset-top));padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))}
+    .screen{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+    .bottom-nav{bottom:calc(12px + env(safe-area-inset-bottom));max-width:calc(100% - 28px - env(safe-area-inset-left) - env(safe-area-inset-right))}
+    .toast{top:calc(18px + env(safe-area-inset-top))}
+    .auth-screen{padding-top:calc(24px + env(safe-area-inset-top));padding-right:calc(24px + env(safe-area-inset-right));padding-bottom:calc(24px + env(safe-area-inset-bottom));padding-left:calc(24px + env(safe-area-inset-left))}
+    .modal{padding-right:calc(12px + env(safe-area-inset-right));padding-bottom:calc(12px + env(safe-area-inset-bottom));padding-left:calc(12px + env(safe-area-inset-left))}
   </style>
 </head>
 <body data-hand="left" data-theme="light">
