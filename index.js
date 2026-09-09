@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
 const appSettings = {
   databaseURL: "https://playground-644c5-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -84,6 +84,7 @@ function bindEvents() {
   $("history-button").addEventListener("click", () => showView("history"));
   $("history-nav").addEventListener("click", () => showView("history"));
   $("home-nav").addEventListener("click", () => showView("categories"));
+  $("history-list").addEventListener("click", handleHistoryAction);
   $("account-button").addEventListener("click", () => openModal("account-panel"));
   $("history-currency").addEventListener("change", (e) => {
     state.historyCurrency = e.target.value;
@@ -161,13 +162,13 @@ async function handleItemAction(event) {
 async function deleteItem(itemId) {
   const current = state.items.find(entry => entry.id === itemId);
   if (!current) return;
-  await update(ref(database, `users/${state.userId}/lists/${itemId}`), { deleted: true });
+  await remove(ref(database, `users/${state.userId}/lists/${itemId}`));
   showToast(`Removed “${current.text}” from the list.`);
 }
 
 function renderList() {
   if (!state.currentCategory) return;
-  const items = state.items.filter(item => item.category === state.currentCategory && !item.deleted);
+  const items = state.items.filter(item => item.category === state.currentCategory);
   const completed = items.filter(item => item.completed).length;
   const percent = items.length ? Math.round((completed / items.length) * 100) : 0;
   $("list-subtitle").textContent = `${items.length} item${items.length === 1 ? "" : "s"} · ${completed} done`;
@@ -186,7 +187,7 @@ function renderList() {
 }
 
 function openCompleteModal() {
-  const items = state.items.filter(item => item.category === state.currentCategory && !item.deleted);
+  const items = state.items.filter(item => item.category === state.currentCategory);
   if (!items.length) return;
   const completed = items.filter(item => item.completed).length;
   $("complete-modal-title").textContent = completed === items.length ? "How much did you spend?" : "Close this shopping list?";
@@ -204,24 +205,49 @@ async function saveShopping() {
     showToast("Please enter a valid amount.");
     return;
   }
+
   const category = categories.find(item => item.id === state.currentCategory);
-  const items = state.items.filter(item => item.category === state.currentCategory && !item.deleted);
-  const purchasedCount = items.filter(item => item.completed).length;
+  const items = state.items.filter(item => item.category === state.currentCategory);
+  const purchasedItems = items.filter(item => item.completed);
+  const purchasedCount = purchasedItems.length;
+
+  // Keep anything that was not bought on the active list. Only purchased items
+  // are moved out of the list; explicitly deleted items are already gone.
+  if (purchasedCount > 0) {
+    const updates = {};
+    purchasedItems.forEach(item => { updates[item.id] = null; });
+    await update(listsRoot(), updates);
+  }
+
+  // A shopping record represents this specific purchase, not every item that
+  // happened to be on the list. This prevents unbought items from appearing
+  // as purchased in History.
   await push(historyRoot(), {
     category: state.currentCategory,
     categoryName: category.name,
     amount,
     currency,
-    itemCount: items.length,
+    itemCount: purchasedCount,
     purchasedCount,
+    purchasedItems: purchasedItems.map(item => item.text),
     completedAt: Date.now()
   });
-  const updates = {};
-  items.forEach(item => { updates[item.id] = null; });
-  await update(listsRoot(), updates);
+
   closeModal("complete-modal");
-  showToast(purchasedCount === items.length ? "Shopping saved to history." : "Shopping closed and saved to history.");
-  showView("categories");
+  showToast(purchasedCount ? "Shopping saved. Unbought items stay on your list." : "Shopping closed. No items were marked as bought.");
+  renderList();
+}
+
+async function handleHistoryAction(event) {
+  const deleteButton = event.target.closest("[data-history-delete-id]");
+  if (!deleteButton) return;
+  const historyId = deleteButton.dataset.historyDeleteId;
+  const record = state.history.find(item => item.id === historyId);
+  if (!record) return;
+  const label = `${record.categoryName || record.category} · ${formatMoney(record.amount, record.currency)}`;
+  if (!confirm(`Delete this shopping record?\n${label}`)) return;
+  await remove(ref(database, `users/${state.userId}/history/${historyId}`));
+  showToast("Shopping record deleted from history.");
 }
 
 function renderHistory() {
@@ -233,9 +259,10 @@ function renderHistory() {
   $("history-summary").innerHTML = `
     <div class="summary-card"><span class="label">All time</span><strong>${formatMoney(total, currency)}</strong></div>
     <div class="summary-card"><span class="label">This month</span><strong>${formatMoney(monthTotal, currency)}</strong></div>
-    <div class="summary-card"><span class="label">Completed trips</span><strong>${relevant.length}</strong></div>
+    <div class="summary-card"><span class="label">Shopping trips</span><strong>${relevant.length}</strong></div>
     <div class="summary-card"><span class="label">Categories</span><strong>${new Set(state.history.map(item => item.category)).size}</strong></div>
   `;
+
   const months = getLastMonths(6);
   const values = months.map(key => relevant.filter(item => monthKey(item.completedAt) === key).reduce((sum, item) => sum + Number(item.amount || 0), 0));
   const max = Math.max(...values, 1);
@@ -243,8 +270,18 @@ function renderHistory() {
     const height = Math.max(3, Math.round((values[index] / max) * 130));
     return `<div class="chart-column"><span class="chart-value">${values[index] ? formatMoney(values[index], currency, true) : ""}</span><div class="chart-bar" style="height:${height}px"></div><span class="chart-label">${key.slice(5)}</span></div>`;
   }).join("");
+
   $("history-list").innerHTML = state.history.length ? state.history.slice(0, 20).map(item => `
-    <div class="history-row"><div><strong>${escapeHtml(item.categoryName || item.category)}</strong><small>${formatDate(item.completedAt)} · ${item.purchasedCount ?? item.itemCount ?? 0} bought</small></div><span class="history-amount">${formatMoney(item.amount, item.currency)}</span></div>
+    <div class="history-row">
+      <div class="history-main">
+        <strong>${escapeHtml(item.categoryName || item.category)}</strong>
+        <small>${formatDate(item.completedAt)} · ${item.purchasedCount ?? item.itemCount ?? 0} bought${item.purchasedItems?.length ? ` · ${escapeHtml(item.purchasedItems.join(", "))}` : ""}</small>
+      </div>
+      <div class="history-actions">
+        <span class="history-amount">${formatMoney(item.amount, item.currency)}</span>
+        <button class="history-delete" type="button" data-history-delete-id="${item.id}" aria-label="Delete shopping record">×</button>
+      </div>
+    </div>
   `).join("") : `<p class="muted" style="font-size:13px;margin:0">No completed shopping yet.</p>`;
 }
 
