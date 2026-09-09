@@ -33,8 +33,6 @@ const shoppingList = $("shopping-list");
 const emptyList = $("empty-list");
 const toast = $("toast");
 
-// The existing Firebase project does not currently expose Authentication config in this repository.
-// This first upgrade therefore uses a private device ID. The old shared `shoplist` data is not reused.
 function getOrCreateGuestId() {
   let id = localStorage.getItem("shoplist_guest_id");
   if (!id) {
@@ -79,7 +77,7 @@ function bindEvents() {
     if (card) openCategory(card.dataset.category);
   });
   $("item-form").addEventListener("submit", addItem);
-  $("shopping-list").addEventListener("click", toggleItem);
+  $("shopping-list").addEventListener("click", handleItemAction);
   $("back-to-categories").addEventListener("click", () => showView("categories"));
   $("complete-button").addEventListener("click", openCompleteModal);
   $("save-complete-button").addEventListener("click", saveShopping);
@@ -145,7 +143,14 @@ async function addItem(event) {
   input.focus();
 }
 
-async function toggleItem(event) {
+async function handleItemAction(event) {
+  const deleteButton = event.target.closest("[data-delete-id]");
+  if (deleteButton) {
+    event.stopPropagation();
+    await deleteItem(deleteButton.dataset.deleteId);
+    return;
+  }
+
   const item = event.target.closest("[data-item-id]");
   if (!item) return;
   const current = state.items.find(entry => entry.id === item.dataset.itemId);
@@ -153,9 +158,16 @@ async function toggleItem(event) {
   await update(ref(database, `users/${state.userId}/lists/${current.id}`), { completed: !current.completed });
 }
 
+async function deleteItem(itemId) {
+  const current = state.items.find(entry => entry.id === itemId);
+  if (!current) return;
+  await update(ref(database, `users/${state.userId}/lists/${itemId}`), { deleted: true });
+  showToast(`Removed “${current.text}” from the list.`);
+}
+
 function renderList() {
   if (!state.currentCategory) return;
-  const items = state.items.filter(item => item.category === state.currentCategory);
+  const items = state.items.filter(item => item.category === state.currentCategory && !item.deleted);
   const completed = items.filter(item => item.completed).length;
   const percent = items.length ? Math.round((completed / items.length) * 100) : 0;
   $("list-subtitle").textContent = `${items.length} item${items.length === 1 ? "" : "s"} · ${completed} done`;
@@ -163,16 +175,24 @@ function renderList() {
   $("progress-bar").style.width = `${percent}%`;
   shoppingList.innerHTML = items.map(item => `
     <li class="shopping-item ${item.completed ? "completed" : ""}" data-item-id="${item.id}">
-      <span class="check-circle">✓</span><span class="item-text">${escapeHtml(item.text)}</span>
+      <span class="check-circle">✓</span>
+      <span class="item-text">${escapeHtml(item.text)}</span>
+      <button class="delete-item" type="button" data-delete-id="${item.id}" aria-label="Remove ${escapeHtml(item.text)}">×</button>
     </li>
   `).join("");
   emptyList.classList.toggle("hidden", items.length > 0);
-  $("complete-button").classList.toggle("hidden", !(items.length > 0 && completed === items.length));
+  $("complete-button").classList.toggle("hidden", items.length === 0);
+  $("complete-button").textContent = completed === items.length ? "✓ Complete shopping" : "✓ Close shopping";
 }
 
 function openCompleteModal() {
-  const items = state.items.filter(item => item.category === state.currentCategory);
-  if (!items.length || items.some(item => !item.completed)) return;
+  const items = state.items.filter(item => item.category === state.currentCategory && !item.deleted);
+  if (!items.length) return;
+  const completed = items.filter(item => item.completed).length;
+  $("complete-modal-title").textContent = completed === items.length ? "How much did you spend?" : "Close this shopping list?";
+  $("complete-modal-copy").textContent = completed === items.length
+    ? "Save the final amount to your spending history."
+    : "You can close the list even if some items were not bought. Enter what you actually spent.";
   $("amount-input").value = "";
   openModal("complete-modal");
 }
@@ -185,19 +205,22 @@ async function saveShopping() {
     return;
   }
   const category = categories.find(item => item.id === state.currentCategory);
+  const items = state.items.filter(item => item.category === state.currentCategory && !item.deleted);
+  const purchasedCount = items.filter(item => item.completed).length;
   await push(historyRoot(), {
     category: state.currentCategory,
     categoryName: category.name,
     amount,
     currency,
-    itemCount: state.items.filter(item => item.category === state.currentCategory).length,
+    itemCount: items.length,
+    purchasedCount,
     completedAt: Date.now()
   });
   const updates = {};
-  state.items.filter(item => item.category === state.currentCategory).forEach(item => { updates[item.id] = null; });
+  items.forEach(item => { updates[item.id] = null; });
   await update(listsRoot(), updates);
   closeModal("complete-modal");
-  showToast("Shopping saved to history.");
+  showToast(purchasedCount === items.length ? "Shopping saved to history." : "Shopping closed and saved to history.");
   showView("categories");
 }
 
@@ -221,7 +244,7 @@ function renderHistory() {
     return `<div class="chart-column"><span class="chart-value">${values[index] ? formatMoney(values[index], currency, true) : ""}</span><div class="chart-bar" style="height:${height}px"></div><span class="chart-label">${key.slice(5)}</span></div>`;
   }).join("");
   $("history-list").innerHTML = state.history.length ? state.history.slice(0, 20).map(item => `
-    <div class="history-row"><div><strong>${escapeHtml(item.categoryName || item.category)}</strong><small>${formatDate(item.completedAt)} · ${item.itemCount || 0} items</small></div><span class="history-amount">${formatMoney(item.amount, item.currency)}</span></div>
+    <div class="history-row"><div><strong>${escapeHtml(item.categoryName || item.category)}</strong><small>${formatDate(item.completedAt)} · ${item.purchasedCount ?? item.itemCount ?? 0} bought</small></div><span class="history-amount">${formatMoney(item.amount, item.currency)}</span></div>
   `).join("") : `<p class="muted" style="font-size:13px;margin:0">No completed shopping yet.</p>`;
 }
 
@@ -249,7 +272,7 @@ function getLastMonths(count) {
   return result;
 }
 function escapeHtml(value) {
-  return String(value).replace(/[&<>\'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#039;", "\"":"&quot;" }[char]));
+  return String(value).replace(/[&<>\'\"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#039;", "\"":"&quot;" }[char]));
 }
 
 init();
