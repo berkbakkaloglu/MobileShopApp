@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
 const appSettings = {
   databaseURL: "https://playground-644c5-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -34,8 +34,7 @@ const emptyList = $("empty-list");
 const toast = $("toast");
 
 // The existing Firebase project does not currently expose Authentication config in this repository.
-// Until Firebase Authentication is configured, this first version uses a private device ID so the
-// old shared `shoplist` data is never mixed with the new app data.
+// This first upgrade therefore uses a private device ID. The old shared `shoplist` data is not reused.
 function getOrCreateGuestId() {
   let id = localStorage.getItem("shoplist_guest_id");
   if (!id) {
@@ -45,17 +44,8 @@ function getOrCreateGuestId() {
   return id;
 }
 
-function userRoot() {
-  return ref(database, `users/${state.userId}`);
-}
-
-function listsRoot() {
-  return ref(database, `users/${state.userId}/lists`);
-}
-
-function historyRoot() {
-  return ref(database, `users/${state.userId}/history`);
-}
+function listsRoot() { return ref(database, `users/${state.userId}/lists`); }
+function historyRoot() { return ref(database, `users/${state.userId}/history`); }
 
 function init() {
   renderCategories();
@@ -88,12 +78,11 @@ function bindEvents() {
     const card = event.target.closest("[data-category]");
     if (card) openCategory(card.dataset.category);
   });
-
   $("item-form").addEventListener("submit", addItem);
   $("shopping-list").addEventListener("click", toggleItem);
   $("back-to-categories").addEventListener("click", () => showView("categories"));
-  $("complete-button").addEventListener("click", () => openModal("complete-modal"));
-  $("save-complete-button").addEventListener("click", completeShopping);
+  $("complete-button").addEventListener("click", openCompleteModal);
+  $("save-complete-button").addEventListener("click", saveShopping);
   $("history-button").addEventListener("click", () => showView("history"));
   $("history-nav").addEventListener("click", () => showView("history"));
   $("home-nav").addEventListener("click", () => showView("categories"));
@@ -102,16 +91,10 @@ function bindEvents() {
     state.historyCurrency = e.target.value;
     renderHistory();
   });
-
   document.querySelectorAll("[data-close]").forEach(button => {
     button.addEventListener("click", () => closeModal(button.dataset.close));
   });
-
-  // The original authentication screen is retained visually; this account uses the existing Firebase
-  // database until an Authentication Web App config is supplied.
-  $("auth-toggle").addEventListener("click", () => {
-    showToast("Login will be enabled after Firebase Authentication is connected.");
-  });
+  $("auth-toggle").addEventListener("click", () => showToast("Login will be enabled after Firebase Authentication is connected."));
   $("auth-form").addEventListener("submit", (event) => {
     event.preventDefault();
     showToast("This first upgrade uses a private device account. Firebase login is next.");
@@ -124,7 +107,6 @@ function subscribeToData() {
     state.items = Object.entries(raw).map(([id, value]) => ({ id, ...value }));
     if (state.currentCategory) renderList();
   });
-
   onValue(historyRoot(), snapshot => {
     const raw = snapshot.val() || {};
     state.history = Object.entries(raw).map(([id, value]) => ({ id, ...value }))
@@ -158,13 +140,7 @@ async function addItem(event) {
   const input = $("item-input");
   const text = input.value.trim();
   if (!text || !state.currentCategory) return;
-
-  await push(listsRoot(), {
-    category: state.currentCategory,
-    text,
-    completed: false,
-    createdAt: Date.now()
-  });
+  await push(listsRoot(), { category: state.currentCategory, text, completed: false, createdAt: Date.now() });
   input.value = "";
   input.focus();
 }
@@ -172,10 +148,9 @@ async function addItem(event) {
 async function toggleItem(event) {
   const item = event.target.closest("[data-item-id]");
   if (!item) return;
-  const id = item.dataset.itemId;
-  const current = state.items.find(entry => entry.id === id);
+  const current = state.items.find(entry => entry.id === item.dataset.itemId);
   if (!current) return;
-  await update(ref(database, `users/${state.userId}/lists/${id}`), { completed: !current.completed });
+  await update(ref(database, `users/${state.userId}/lists/${current.id}`), { completed: !current.completed });
 }
 
 function renderList() {
@@ -183,25 +158,19 @@ function renderList() {
   const items = state.items.filter(item => item.category === state.currentCategory);
   const completed = items.filter(item => item.completed).length;
   const percent = items.length ? Math.round((completed / items.length) * 100) : 0;
-
   $("list-subtitle").textContent = `${items.length} item${items.length === 1 ? "" : "s"} · ${completed} done`;
   $("progress-label").textContent = `${percent}%`;
   $("progress-bar").style.width = `${percent}%`;
-
   shoppingList.innerHTML = items.map(item => `
     <li class="shopping-item ${item.completed ? "completed" : ""}" data-item-id="${item.id}">
-      <span class="check-circle">✓</span>
-      <span class="item-text">${escapeHtml(item.text)}</span>
+      <span class="check-circle">✓</span><span class="item-text">${escapeHtml(item.text)}</span>
     </li>
   `).join("");
-
   emptyList.classList.toggle("hidden", items.length > 0);
-  const completeButton = $("complete-button");
-  const allDone = items.length > 0 && completed === items.length;
-  completeButton.classList.toggle("hidden", !allDone);
+  $("complete-button").classList.toggle("hidden", !(items.length > 0 && completed === items.length));
 }
 
-async function completeShopping() {
+function openCompleteModal() {
   const items = state.items.filter(item => item.category === state.currentCategory);
   if (!items.length || items.some(item => !item.completed)) return;
   $("amount-input").value = "";
@@ -215,7 +184,6 @@ async function saveShopping() {
     showToast("Please enter a valid amount.");
     return;
   }
-
   const category = categories.find(item => item.id === state.currentCategory);
   await push(historyRoot(), {
     category: state.currentCategory,
@@ -225,53 +193,35 @@ async function saveShopping() {
     itemCount: state.items.filter(item => item.category === state.currentCategory).length,
     completedAt: Date.now()
   });
-
   const updates = {};
-  state.items.filter(item => item.category === state.currentCategory).forEach(item => {
-    updates[item.id] = null;
-  });
+  state.items.filter(item => item.category === state.currentCategory).forEach(item => { updates[item.id] = null; });
   await update(listsRoot(), updates);
   closeModal("complete-modal");
   showToast("Shopping saved to history.");
   showView("categories");
 }
 
-function completeShoppingLegacyGuard() {
-  return completeShopping;
-}
-
-$("save-complete-button").addEventListener("click", saveShopping);
-
 function renderHistory() {
   const currency = state.historyCurrency;
   const relevant = state.history.filter(item => item.currency === currency);
   const total = relevant.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const shoppingCount = relevant.length;
   const thisMonthKey = monthKey(Date.now());
-  const monthTotal = relevant.filter(item => monthKey(item.completedAt) === thisMonthKey)
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
+  const monthTotal = relevant.filter(item => monthKey(item.completedAt) === thisMonthKey).reduce((sum, item) => sum + Number(item.amount || 0), 0);
   $("history-summary").innerHTML = `
     <div class="summary-card"><span class="label">All time</span><strong>${formatMoney(total, currency)}</strong></div>
     <div class="summary-card"><span class="label">This month</span><strong>${formatMoney(monthTotal, currency)}</strong></div>
-    <div class="summary-card"><span class="label">Completed trips</span><strong>${shoppingCount}</strong></div>
+    <div class="summary-card"><span class="label">Completed trips</span><strong>${relevant.length}</strong></div>
     <div class="summary-card"><span class="label">Categories</span><strong>${new Set(state.history.map(item => item.category)).size}</strong></div>
   `;
-
   const months = getLastMonths(6);
-  const values = months.map(key => relevant.filter(item => monthKey(item.completedAt) === key)
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0));
+  const values = months.map(key => relevant.filter(item => monthKey(item.completedAt) === key).reduce((sum, item) => sum + Number(item.amount || 0), 0));
   const max = Math.max(...values, 1);
   $("history-chart").innerHTML = months.map((key, index) => {
     const height = Math.max(3, Math.round((values[index] / max) * 130));
     return `<div class="chart-column"><span class="chart-value">${values[index] ? formatMoney(values[index], currency, true) : ""}</span><div class="chart-bar" style="height:${height}px"></div><span class="chart-label">${key.slice(5)}</span></div>`;
   }).join("");
-
   $("history-list").innerHTML = state.history.length ? state.history.slice(0, 20).map(item => `
-    <div class="history-row">
-      <div><strong>${escapeHtml(item.categoryName || item.category)}</strong><small>${formatDate(item.completedAt)} · ${item.itemCount || 0} items</small></div>
-      <span class="history-amount">${formatMoney(item.amount, item.currency)}</span>
-    </div>
+    <div class="history-row"><div><strong>${escapeHtml(item.categoryName || item.category)}</strong><small>${formatDate(item.completedAt)} · ${item.itemCount || 0} items</small></div><span class="history-amount">${formatMoney(item.amount, item.currency)}</span></div>
   `).join("") : `<p class="muted" style="font-size:13px;margin:0">No completed shopping yet.</p>`;
 }
 
@@ -290,8 +240,7 @@ function formatMoney(value, currency, compact = false) {
 function formatDate(timestamp) { return new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" }).format(timestamp); }
 function monthKey(timestamp) { const date = new Date(timestamp); return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`; }
 function getLastMonths(count) {
-  const result = [];
-  const date = new Date();
+  const result = [], date = new Date();
   date.setDate(1);
   for (let i = count - 1; i >= 0; i--) {
     const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
@@ -300,9 +249,7 @@ function getLastMonths(count) {
   return result;
 }
 function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#039;","\"":"&quot;"}[char]));
+  return String(value).replace(/[&<>\'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#039;", "\"":"&quot;" }[char]));
 }
 
-// Wire the actual save handler after all functions are declared.
-$("save-complete-button").onclick = saveShopping;
 init();
