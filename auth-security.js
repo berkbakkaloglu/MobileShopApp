@@ -49,9 +49,18 @@ onAuthStateChanged(auth,async user=>{
   let verified=false;
   try{verified=await refreshVerificationState(user)}catch{}
   if(!verified){
+    sessionStorage.removeItem(`shoplist_verified_reload_${user.uid}`);
     showVerification(user);
     await sendVerification(user,false);
-  }else hideVerification();
+    return;
+  }
+
+  hideVerification();
+  const reloadKey=`shoplist_verified_reload_${user.uid}`;
+  if(sessionStorage.getItem(reloadKey)!=="1"){
+    sessionStorage.setItem(reloadKey,"1");
+    window.location.reload();
+  }
 });
 
 verifiedButton?.addEventListener("click",async()=>{
@@ -62,6 +71,7 @@ verifiedButton?.addEventListener("click",async()=>{
   try{
     const verified=await refreshVerificationState(user);
     if(verified){
+      sessionStorage.setItem(`shoplist_verified_reload_${user.uid}`,"1");
       verifyMessage.textContent="Email verified. Opening ShopList…";
       setTimeout(()=>window.location.reload(),300);
     }else verifyMessage.textContent="Not verified yet. Open the Firebase email first, then tap this button again.";
