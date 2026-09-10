@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="description" content="ShopList secure account action">
+  <title>ShopList Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="auth-action.css?v=20260910-v1">
+</head>
+<body>
+  <main class="action-shell">
+    <section class="action-card" aria-live="polite">
+      <div class="brand-mark">✓</div>
+      <p class="eyebrow">SHOPLIST</p>
+      <h1 id="action-title">Checking your link…</h1>
+      <p id="action-copy" class="action-copy">Please wait a moment.</p>
+
+      <div id="reset-form" class="reset-form hidden">
+        <label>
+          <span>New password</span>
+          <input id="new-password" type="password" minlength="6" autocomplete="new-password" placeholder="At least 6 characters">
+        </label>
+        <label>
+          <span>Confirm password</span>
+          <input id="confirm-password" type="password" minlength="6" autocomplete="new-password" placeholder="Repeat your password">
+        </label>
+        <button id="save-password" class="primary-button" type="button">Save new password</button>
+      </div>
+
+      <p id="action-status" class="status"></p>
+      <a id="open-shoplist" class="primary-link hidden" href="/">Open ShopList</a>
+      <a id="back-shoplist" class="secondary-link" href="/">Back to ShopList</a>
+    </section>
+  </main>
+  <script src="auth-action.js?v=20260910-v1" type="module"></script>
+</body>
+</html>
