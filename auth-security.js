@@ -22,6 +22,15 @@ function showVerification(user){
 
 function hideVerification(){verifyScreen?.classList.add("hidden")}
 
+async function refreshVerificationState(user){
+  await reload(user);
+  if(user.emailVerified){
+    await user.getIdToken(true);
+    return true;
+  }
+  return false;
+}
+
 async function sendVerification(user,manual=false){
   if(!user||user.emailVerified)return;
   const key=`shoplist_verification_sent_${user.uid}`;
@@ -37,8 +46,9 @@ async function sendVerification(user,manual=false){
 
 onAuthStateChanged(auth,async user=>{
   if(!user){hideVerification();return}
-  try{await reload(user)}catch{}
-  if(!user.emailVerified){
+  let verified=false;
+  try{verified=await refreshVerificationState(user)}catch{}
+  if(!verified){
     showVerification(user);
     await sendVerification(user,false);
   }else hideVerification();
@@ -50,8 +60,8 @@ verifiedButton?.addEventListener("click",async()=>{
   verifiedButton.disabled=true;
   verifyMessage.textContent="Checking verification…";
   try{
-    await reload(user);
-    if(user.emailVerified){
+    const verified=await refreshVerificationState(user);
+    if(verified){
       verifyMessage.textContent="Email verified. Opening ShopList…";
       setTimeout(()=>window.location.reload(),300);
     }else verifyMessage.textContent="Not verified yet. Open the Firebase email first, then tap this button again.";
